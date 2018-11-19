@@ -35,7 +35,7 @@ func main() {
 			fmt.Printf("wrong interval: from %d to %d != %d\n", min, max, dif)
 			continue
 		}
-		compute(v[0], v[1], v[2], "")
+		compute(p.Prefix+v[0], v[1], v[2], ""+p.Suffix)
 	}
 }
 
