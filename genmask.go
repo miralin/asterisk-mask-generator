@@ -7,21 +7,41 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
 	"golang.org/x/text/encoding/charmap"
 )
 
+type params struct {
+	URL      string
+	Region   string
+	Operator string
+	Comment  bool
+	Prefix   string
+	Suffix   string
+	Group    bool
+}
+
 func main() {
 	p := readArgs()
 
 	var values [][]string
 	if p.Region != "" {
-		values = filter(parse(getCodes(p.URL)), p.Region)
+		values = filterRegion(parse(getCodes(p.URL)), p.Region)
 	} else {
 		values = parse(getCodes(p.URL))
 	}
+
+	if p.Operator != "" {
+		values = filterOperator(values, p.Operator)
+	}
+
+	if p.Group {
+		sort.Slice(values, func(i, j int) bool { return values[i][4] < values[j][4] })
+	}
+	op := ""
 	for _, v := range values {
 		_, min, max, dif := convert(v)
 		if !validate(min, max, dif) {
@@ -30,6 +50,12 @@ func main() {
 		}
 		if p.Comment {
 			fmt.Printf("; %v, %v, %v, %v, %v, %v\n", v[0], v[1], v[2], v[3], v[4], v[5])
+		}
+		if p.Group {
+			if v[4] != op {
+				fmt.Printf("; %s\n", v[4])
+				op = v[4]
+			}
 		}
 		if len([]rune(v[0])) != 3 || len([]rune(v[1])) != 7 || len([]rune(v[2])) != 7 {
 			fmt.Printf("wrong interval: from %d to %d != %d\n", min, max, dif)
@@ -110,10 +136,20 @@ func fixCodes(data string, f int) string {
 	return string(x)
 }
 
-func filter(values [][]string, region string) [][]string {
+func filterRegion(values [][]string, region string) [][]string {
 	var res [][]string
 	for _, v := range values {
-		if strings.Contains(v[5], region) {
+		if strings.Contains(strings.ToLower(v[5]), strings.ToLower(region)) {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+func filterOperator(values [][]string, operator string) [][]string {
+	var res [][]string
+	for _, v := range values {
+		if strings.Contains(strings.ToLower(v[4]), strings.ToLower(operator)) {
 			res = append(res, v)
 		}
 	}
@@ -311,21 +347,15 @@ func compute(pre, min, max, suf string) {
 	}
 }
 
-type params struct {
-	URL     string
-	Region  string
-	Comment bool
-	Prefix  string
-	Suffix  string
-}
-
 func readArgs() params {
 	p := params{
-		URL:     "https://rossvyaz.gov.ru/docs/articles/DEF-9x.csv",
-		Region:  "",
-		Comment: false,
-		Prefix:  "",
-		Suffix:  "",
+		URL:      "https://rossvyaz.gov.ru/docs/articles/DEF-9x.csv",
+		Region:   "",
+		Operator: "",
+		Comment:  false,
+		Prefix:   "",
+		Suffix:   "",
+		Group:    false,
 	}
 
 	wait := false
@@ -338,6 +368,8 @@ func readArgs() params {
 				p.URL = v
 			case "-r":
 				p.Region = v
+			case "-o":
+				p.Operator = v
 			case "-p":
 				p.Prefix = v
 			case "-s":
@@ -349,9 +381,13 @@ func readArgs() params {
 				p.Comment = true
 				continue
 			}
+			if v == "-g" {
+				p.Group = true
+				continue
+			}
 
 			switch v {
-			case "-u", "-r", "-p", "-s":
+			case "-u", "-r", "-o", "-p", "-s":
 				key = v
 				wait = true
 			case "-h":
@@ -374,10 +410,13 @@ func readArgs() params {
 func help() {
 	fmt.Println("usage: genmask [-u <url>] [-r <region filter>] [-c] [-p <prefix>] [-s <suffix>]")
 	fmt.Println("\t-u <value>: url to csv file. Default is https://rossvyaz.gov.ru/docs/articles/DEF-9x.csv")
-	fmt.Println("\t-r <value>: find entries in the csv file that contain the value.")
+	fmt.Println("\t-r <value>: find entries in the csv file that contain the value in region field.")
 	fmt.Println("\t            It's better to use short masks, because errors and typos are possible in the csv file.")
-	fmt.Println("\t-c:         Print a comment: <; code, min, max, length, cellular operator, region> before each interval")
-	fmt.Println("\t-p: <value>: Print a prefix for each mask")
-	fmt.Println("\t-p: <value>: Print a suffix for each mask")
+	fmt.Println("\t-o <value>: find entries in the csv file that contain the value in operator field.")
+	fmt.Println("\t            It's better to use short masks, because errors and typos are possible in the csv file.")
+	fmt.Println("\t-c         Print a comment: <; code, min, max, length, cellular operator, region> before each interval")
+	fmt.Println("\t-p <value>: Print a prefix for each mask")
+	fmt.Println("\t-s <value>: Print a suffix for each mask")
+	fmt.Println("\t-g <value>: Group output by cellular operator")
 	fmt.Println("show this help: genmask -h")
 }
