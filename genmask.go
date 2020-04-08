@@ -10,8 +10,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"golang.org/x/text/encoding/charmap"
 )
 
 type params struct {
@@ -79,15 +77,7 @@ func getCodes(url string) string {
 		if err != nil {
 			log.Panic(err)
 		}
-		dec := charmap.Windows1251.NewDecoder()
-		body := make([]byte, len(b)*2)
-		n, _, err := dec.Transform(body, []byte(b), false)
-
-		if err != nil {
-			log.Println(err)
-		}
-
-		return string(body[:n])
+		return string(b)
 	}
 	log.Panic("bad response")
 	return ""
