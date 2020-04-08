@@ -114,7 +114,7 @@ func parse(data string) [][]string {
 }
 
 // I found three records with excess separators
-// in https://rossvyaz.gov.ru/docs/articles/DEF-9x.csv
+// in https://rossvyaz.ru/data/DEF-9xx.csv
 // (start at 955;5550000;5559999;10000 ...)
 func fixCodes(data string, f int) string {
 	c := 0
@@ -349,7 +349,7 @@ func compute(pre, min, max, suf string) {
 
 func readArgs() params {
 	p := params{
-		URL:      "https://rossvyaz.gov.ru/docs/articles/DEF-9x.csv",
+		URL:      "https://rossvyaz.ru/data/DEF-9xx.csv",
 		Region:   "",
 		Operator: "",
 		Comment:  false,
@@ -409,7 +409,7 @@ func readArgs() params {
 
 func help() {
 	fmt.Println("usage: genmask [-u <url>] [-r <region filter>] [-c] [-p <prefix>] [-s <suffix>]")
-	fmt.Println("\t-u <value>: url to csv file. Default is https://rossvyaz.gov.ru/docs/articles/DEF-9x.csv")
+	fmt.Println("\t-u <value>: url to csv file. Default is https://rossvyaz.ru/data/DEF-9xx.csv")
 	fmt.Println("\t-r <value>: find entries in the csv file that contain the value in region field.")
 	fmt.Println("\t            It's better to use short masks, because errors and typos are possible in the csv file.")
 	fmt.Println("\t-o <value>: find entries in the csv file that contain the value in operator field.")
